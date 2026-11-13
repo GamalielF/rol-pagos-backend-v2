@@ -28,6 +28,10 @@ spring:
       app-role:
         role-id: ${VAULT_ROLE_ID}
         secret-id: ${VAULT_SECRET_ID}
+      lifecycle:
+        enabled: true
+        min-renewal-period: 30s
+        expiry-threshold: 1m
      # fail-fast: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
