@@ -1,6 +1,7 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.service;
 
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.ConflictoException;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.entity.EstadoRegistro;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.SolicitudInvalidaException;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.RecursoNoEncontradoException;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.periodo.EstadoPeriodo;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.periodo.Periodo;
@@ -67,16 +68,22 @@ class GestionRolesPagoServiceIT extends SoporteRolesPago {
                 .hasMessageContaining("no pertenece");
     }
 
+    /** Un período publicado se puede corregir, pero solo indicando el motivo (queda en la auditoría). */
     @Test
-    void unPeriodoPublicadoNoSeModifica() {
+    void unPeriodoPublicadoSoloSeCorrigeConMotivo() {
         Long id = rolDe(CEDULA_JUAN).getId();
         Periodo periodo = periodoRepository.findByFechaPeriodo(PERIODO.atDay(1)).orElseThrow();
         periodo.setEstadoPeriodo(EstadoPeriodo.PUBLICADO);
         periodoRepository.save(periodo);
         em.flush();
 
-        assertThatThrownBy(() -> gestion.inactivar(PERIODO, id)).isInstanceOf(ConflictoException.class);
-        assertThatThrownBy(() -> gestion.activar(PERIODO, id)).isInstanceOf(ConflictoException.class);
+        assertThatThrownBy(() -> gestion.inactivar(PERIODO, id)).isInstanceOf(SolicitudInvalidaException.class);
+        assertThatThrownBy(() -> gestion.activar(PERIODO, id)).isInstanceOf(SolicitudInvalidaException.class);
+
+        assertThat(gestion.inactivar(PERIODO, id, "Rol cargado a la persona equivocada").estado())
+                .isEqualTo(EstadoRegistro.INACTIVO.name());
+        assertThat(gestion.activar(PERIODO, id, "Se confirmó que el rol era correcto").estado())
+                .isEqualTo(EstadoRegistro.ACTIVO.name());
     }
 
     @Test
@@ -90,7 +97,7 @@ class GestionRolesPagoServiceIT extends SoporteRolesPago {
         aviso.setPeriodo(periodoRepository.findByFechaPeriodo(PERIODO.atDay(1)).orElseThrow());
         aviso.setRolPagoId(rolDe(cedula).getId());
         aviso.setCedula(cedula);
-        aviso.setUsernameDestino("jperez");
+        aviso.setUsuarioDestino(usuarios.obtenerOCrear("jperez"));
         aviso.setEmailDestino("jperez@coopsanjose.fin.ec");
         aviso.setEstado(estado);
         return aviso;

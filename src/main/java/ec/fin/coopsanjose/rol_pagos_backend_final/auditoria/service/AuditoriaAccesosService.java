@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.service;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.service.RegistroUsuarios;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.AccesoRolPago;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.DetalleAcceso;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.ResultadoAcceso;
@@ -19,6 +20,7 @@ public class AuditoriaAccesosService {
     }
 
     private final AccesoRolPagoRepository repositorio;
+    private final RegistroUsuarios usuarios;
 
     /** Si esto falla, la excepción sube: no se entrega ningún rol sin dejar registro. */
     public void registrar(Evento evento) {
@@ -26,7 +28,7 @@ public class AuditoriaAccesosService {
         acceso.setTipoAcceso(evento.tipo());
         acceso.setResultado(evento.resultado());
         acceso.setDetalle(evento.detalle());
-        acceso.setUsernameAd(limitar(evento.username(), 50));
+        acceso.setUsuario(usuarios.obtenerOCrear(evento.username()));
         acceso.setCedulaConsultada(limitar(evento.cedulaConsultada(), 10));
         acceso.setPeriodo(limitar(evento.periodo(), 7));
         acceso.setRolPagoId(evento.rolPagoId());

@@ -1,5 +1,9 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.common.periodo;
 
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.entity.Usuario;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -36,6 +40,12 @@ public class Periodo extends BaseEntity {
     @Column(name = "FECHA_PUBLICACION")
     private LocalDateTime fechaPublicacion;
 
-    @Column(name = "PUBLICADO_POR", length = 100)
-    private String publicadoPor;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "PUBLICADO_POR_ID")
+    private Usuario publicadoPorUsuario;
+
+    /** Código del AD de quien publicó el período (null si aún no se publica). */
+    public String getPublicadoPor() {
+        return publicadoPorUsuario == null ? null : publicadoPorUsuario.getUsernameAd();
+    }
 }

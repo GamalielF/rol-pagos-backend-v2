@@ -5,7 +5,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 TOKEN="${1:?Uso: sh scripts/verificar-token.sh <token> [clave_publica.pem]}"
-CLAVE="${2:-certs/jwt-public.pem}"
+CLAVE="${2:-certs/jwt-autenticador-test.pub}"
 [ -f "$CLAVE" ] || { echo "No existe la clave pública: $CLAVE" >&2; exit 2; }
 
 H=${TOKEN%%.*}; RESTO=${TOKEN#*.}; P=${RESTO%%.*}; F=${RESTO#*.}

@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.directorio.service;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.service.RegistroUsuarios;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.entity.EstadoRegistro;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.ConflictoException;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.NegocioException;
@@ -49,6 +50,7 @@ public class DirectorioAdService {
     private final AdProperties propiedades;
     private final Clock clock;
     private final TransactionTemplate transaccion;
+    private final RegistroUsuarios usuarios;
     private final ReentrantLock candado = new ReentrantLock();
 
     public DirectorioAdService(DirectorioAdClient cliente,
@@ -57,7 +59,8 @@ public class DirectorioAdService {
                                DirectorioAdMapper mapper,
                                AdProperties propiedades,
                                Clock clock,
-                               PlatformTransactionManager transactionManager) {
+                               PlatformTransactionManager transactionManager,
+                               RegistroUsuarios usuarios) {
         this.cliente = cliente;
         this.directorioRepository = directorioRepository;
         this.sincronizacionRepository = sincronizacionRepository;
@@ -65,6 +68,7 @@ public class DirectorioAdService {
         this.propiedades = propiedades;
         this.clock = clock;
         this.transaccion = new TransactionTemplate(transactionManager);
+        this.usuarios = usuarios;
     }
 
     // ------------------------------------------------------------ sincronización completa
@@ -182,7 +186,7 @@ public class DirectorioAdService {
             DirectorioAd actual = porUsername.get(fila.username());
             if (actual == null) {
                 DirectorioAd nuevo = new DirectorioAd();
-                nuevo.setUsernameAd(fila.username());
+                nuevo.setUsuario(usuarios.obtenerOCrear(fila.username()));
                 mapper.copiar(nuevo, fila);
                 directorioRepository.save(nuevo);
                 creados++;
@@ -226,7 +230,7 @@ public class DirectorioAdService {
     private PerfilDirectorioDto guardarFila(FilaDirectorio fila) {
         DirectorioAd d = directorioRepository.findByUsernameAd(fila.username()).orElseGet(() -> {
             DirectorioAd nuevo = new DirectorioAd();
-            nuevo.setUsernameAd(fila.username());
+            nuevo.setUsuario(usuarios.obtenerOCrear(fila.username()));
             return nuevo;
         });
         if (d.getId() == null || mapper.difiere(d, fila)) {

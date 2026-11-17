@@ -46,7 +46,7 @@ app:
       - X-Dev-Usuario      # solo desarrollo: identidad simulada
       - X-Dev-Roles        # solo desarrollo
   jwt:
-    clave-publica-archivo: ${JWT_PUBLIC_KEY_FILE:./certs/jwt-public.pem}
+    clave-publica-archivo: ${JWT_PUBLIC_KEY_FILE:./certs/jwt-autenticador-test.pub}   # clave PÚBLICA del autenticador de test (pre-prod)
   correo:
     modo: SIMULADO
     resultado-simulado: OK

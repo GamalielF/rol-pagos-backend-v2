@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.service;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.service.RegistroUsuarios;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.TipoAccion;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.service.AuditoriaAccionesService;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.entity.EstadoRegistro;
@@ -45,6 +46,7 @@ public class PublicacionService {
     private final NotificacionService notificaciones;
     private final AuditoriaAccionesService auditoria;
     private final Clock clock;
+    private final RegistroUsuarios usuarios;
 
     @Transactional(readOnly = true)
     public ResumenPeriodoDto resumen(YearMonth ym) {
@@ -69,7 +71,7 @@ public class PublicacionService {
 
         periodo.setEstadoPeriodo(EstadoPeriodo.PUBLICADO);
         periodo.setFechaPublicacion(LocalDateTime.now(clock));
-        periodo.setPublicadoPor(publicadoPor);
+        periodo.setPublicadoPorUsuario(usuarios.obtenerOCrear(publicadoPor));
         periodoRepository.save(periodo);
 
         // Los avisos se encolan en esta misma transacción; el envío ocurre después, en segundo plano

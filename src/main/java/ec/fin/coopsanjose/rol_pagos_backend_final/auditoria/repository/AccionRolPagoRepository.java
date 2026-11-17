@@ -12,9 +12,9 @@ import java.time.LocalDateTime;
 
 public interface AccionRolPagoRepository extends BaseRepository<AccionRolPago> {
 
-    @Query("select a from AccionRolPago a "
+    @Query("select a from AccionRolPago a join a.usuario u "
             + "where a.creadoEn >= :desde and a.creadoEn < :hasta "
-            + "and (:usuario is null or a.usernameAd = :usuario) "
+            + "and (:usuario is null or u.usernameAd = :usuario) "
             + "and (:tipo is null or a.tipoAccion = :tipo) "
             + "and (:periodo is null or a.periodo = :periodo) "
             + "order by a.creadoEn desc, a.id desc")

@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.service;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.service.RegistroUsuarios;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.AccionRolPago;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.TipoAccion;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.repository.AccionRolPagoRepository;
@@ -19,14 +20,14 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class AuditoriaAccionesService {
 
-    private static final String ACTOR_SISTEMA = "SISTEMA";
-
     private final AccionRolPagoRepository repositorio;
+    private final RegistroUsuarios usuarios;
 
     public void registrar(TipoAccion tipo, String periodo, Long rolPagoId, String detalle) {
         AccionRolPago accion = new AccionRolPago();
         accion.setTipoAccion(tipo);
-        accion.setUsernameAd(limitar(UsuarioActual.obtener().map(UsuarioAutenticado::username).orElse(ACTOR_SISTEMA), 50));
+        accion.setUsuario(usuarios.obtenerOCrear(
+                UsuarioActual.obtener().map(UsuarioAutenticado::username).orElse(RegistroUsuarios.USUARIO_SISTEMA)));
         accion.setPeriodo(limitar(periodo, 7));
         accion.setRolPagoId(rolPagoId);
         accion.setDetalle(limitar(detalle, 500));

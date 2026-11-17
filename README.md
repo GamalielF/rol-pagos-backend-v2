@@ -126,7 +126,7 @@ Cubren la carga y publicación, las reglas de acceso, el validador JWT, el lími
 
 | Síntoma | Causa probable |
 |---|---|
-| La aplicación no arranca: «No hay forma de autenticar usuarios» | No hay clave JWT (`certs/jwt-public.pem`) y el modo de desarrollo está apagado |
+| La aplicación no arranca: «No hay forma de autenticar usuarios» | No hay clave JWT (`certs/jwt-autenticador-test.pub`, o la de `JWT_PUBLIC_KEY_FILE`) y el modo de desarrollo está apagado |
 | Con el perfil `demo` no arranca: «Could not resolve placeholder» | Falta `CORREO_API_URL` o `CORREO_REDIRIGIR_A` en el `.env` |
 | 401 en todo | Falta `X-Dev-Usuario` (modo B) o el token no es válido (revisa el log: dice el motivo sin mostrar el token) |
 | 403 | El usuario no tiene ese rol; se lo da un ADMIN con `.../roles/RRHH/otorgar` |

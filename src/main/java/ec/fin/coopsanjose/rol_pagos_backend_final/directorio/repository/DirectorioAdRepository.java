@@ -14,7 +14,8 @@ import java.util.Optional;
 
 public interface DirectorioAdRepository extends BaseRepository<DirectorioAd> {
 
-    Optional<DirectorioAd> findByUsernameAd(String usernameAd);
+    @Query("select d from DirectorioAd d join d.usuario u where u.usernameAd = :username")
+    Optional<DirectorioAd> findByUsernameAd(@Param("username") String usernameAd);
 
     long countByEstadoRegistro(EstadoRegistro estadoRegistro);
 
@@ -22,11 +23,12 @@ public interface DirectorioAdRepository extends BaseRepository<DirectorioAd> {
 
     List<DirectorioAd> findByCedulaIn(Collection<String> cedulas);
 
-    List<DirectorioAd> findByUsernameAdIn(Collection<String> usernames);
+    @Query("select d from DirectorioAd d join d.usuario u where u.usernameAd in :usernames")
+    List<DirectorioAd> findByUsernameAdIn(@Param("usernames") Collection<String> usernames);
 
     /** texto ya viene en minúsculas y con comodines (%texto%), o null para no filtrar. */
-    @Query("select d from DirectorioAd d where d.estadoRegistro = :estado "
-            + "and (:texto is null or lower(d.usernameAd) like :texto or lower(d.nombreCompleto) like :texto) "
-            + "order by d.nombreCompleto, d.usernameAd")
+    @Query("select d from DirectorioAd d join d.usuario u where d.estadoRegistro = :estado "
+            + "and (:texto is null or lower(u.usernameAd) like :texto or lower(d.nombreCompleto) like :texto) "
+            + "order by d.nombreCompleto, u.usernameAd")
     Page<DirectorioAd> buscar(@Param("estado") EstadoRegistro estado, @Param("texto") String texto, Pageable pageable);
 }

@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.notificacion.entity;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.entity.Usuario;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.entity.BaseEntity;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.periodo.Periodo;
 import jakarta.persistence.Column;
@@ -42,8 +43,9 @@ public class NotificacionRolPago extends BaseEntity {
     private String cedula;
 
     /** Cuenta elegida al encolar: la activa de creación más reciente. */
-    @Column(name = "USERNAME_DESTINO", length = 50)
-    private String usernameDestino;
+    @ManyToOne(fetch = FetchType.EAGER, optional = true)
+    @JoinColumn(name = "USUARIO_DESTINO_ID", nullable = true)
+    private Usuario usuarioDestino;
 
     @Column(name = "EMAIL_DESTINO", length = 120)
     private String emailDestino;
@@ -75,4 +77,9 @@ public class NotificacionRolPago extends BaseEntity {
     /** Categoría del fallo, sin detalles técnicos ni datos personales. */
     @Column(name = "ULTIMO_ERROR", length = 200)
     private String ultimoError;
+
+    /** Código del AD del usuario al que se envió el aviso (null si la cédula no tiene cuenta). Atajo para no recorrer la relación en cada uso. */
+    public String getUsernameDestino() {
+        return usuarioDestino == null ? null : usuarioDestino.getUsernameAd();
+    }
 }

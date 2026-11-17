@@ -38,6 +38,9 @@ public final class PdfDePrueba {
                     contenido.endText();
                 }
             }
+            // PDFBox escribe en cada guardado un identificador distinto (/ID). Fijarlo hace que el mismo contenido
+            // produzca SIEMPRE los mismos bytes, como un archivo real que se vuelve a subir sin cambios.
+            documento.setDocumentId(1L);
             documento.save(salida);
             return salida.toByteArray();
         } catch (IOException e) {

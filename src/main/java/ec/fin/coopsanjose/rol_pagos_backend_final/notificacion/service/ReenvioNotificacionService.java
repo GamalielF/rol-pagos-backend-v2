@@ -85,7 +85,7 @@ public class ReenvioNotificacionService {
         if (aviso == null) {
             aviso = nuevoAviso(periodo, rol);
         }
-        aviso.setUsernameDestino(cuenta.getUsernameAd());
+        aviso.setUsuarioDestino(cuenta.getUsuario());
         aviso.setEmailDestino(correo);
         if (aviso.getId() == null) {
             aviso = repositorio.save(aviso);   // hace falta su número para las variables de la plantilla

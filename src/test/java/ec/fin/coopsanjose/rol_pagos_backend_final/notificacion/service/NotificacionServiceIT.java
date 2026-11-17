@@ -36,10 +36,7 @@ class NotificacionServiceIT extends SoporteNotificaciones {
     /** Juan recibe su aviso, a María el servicio le rechaza la dirección, y a Luis no se le puede armar el correo (sin código de usuario). */
     private void escenarioConUnFallidoYUnOmitido() {
         prepararTresPersonas();
-        DirectorioAd luis = directorioRepository.findByUsernameAd("zz.luis").orElseThrow();
-        luis.setUsernameAd(" ");
-        directorioRepository.save(luis);
-        em.flush();
+        renombrarUsuario("zz.luis", " ");
         publicar();
         doThrow(new EnvioCorreoException("La API de correo rechazó la solicitud (HTTP 422)", false, null))
                 .when(enviador).enviar(eq("zz.maria@coopsanjose.fin.ec"), anyString(), anyString(), anyString());
@@ -120,10 +117,7 @@ class NotificacionServiceIT extends SoporteNotificaciones {
 
     /** El correo se arma con el código de usuario: sin él no hay a dónde avisar. */
     private void cambiarCodigoDeUsuario(String actual, String nuevo) {
-        DirectorioAd persona = directorioRepository.findByUsernameAd(actual).orElseThrow();
-        persona.setUsernameAd(nuevo);
-        directorioRepository.save(persona);
-        em.flush();
+        renombrarUsuario(actual, nuevo);
     }
 
     @Test

@@ -102,7 +102,7 @@ public class AdministracionUsuariosService {
         Optional<AsignacionRol> existente = asignacionRepository.findByUsernameAdAndRol(username, rol);
         AsignacionRol asignacion = existente.orElseGet(() -> {
             AsignacionRol nueva = new AsignacionRol();
-            nueva.setUsernameAd(username);
+            nueva.setUsuario(usuario.getUsuario());
             nueva.setRol(rol);
             return nueva;
         });

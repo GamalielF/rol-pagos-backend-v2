@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.rolpago;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.service.RegistroUsuarios;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.periodo.PeriodoRepository;
 import ec.fin.coopsanjose.rol_pagos_backend_final.administracion.config.AdministradoresProperties;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.entity.DirectorioAd;
@@ -55,6 +56,7 @@ public abstract class SoporteRolesPago {
     @Autowired protected PeriodoRepository periodoRepository;
     @Autowired protected AlmacenRolesPago almacen;
     @Autowired protected CargaRolesPagoService carga;
+    @Autowired protected RegistroUsuarios usuarios;
 
     @DynamicPropertySource
     static void rutaDeAlmacenamiento(DynamicPropertyRegistry registro) {
@@ -76,16 +78,26 @@ public abstract class SoporteRolesPago {
      */
     protected void apartarAsignacionesDeLosAdministradoresDeArranque() {
         for (String usuario : administradores.administradoresIniciales()) {
-            em.createNativeQuery("UPDATE ASIGNACIONES_ROL SET USERNAME_AD = CONCAT('apartado.', USERNAME_AD) WHERE LOWER(USERNAME_AD) = ?1")
-                    .setParameter(1, usuario).executeUpdate();
+            Long apartado = usuarios.obtenerOCrear("apartado." + usuario).getId();
+            em.createNativeQuery("UPDATE ASIGNACIONES_ROL a JOIN USUARIOS u ON u.ID = a.USUARIO_ID "
+                            + "SET a.USUARIO_ID = ?1 WHERE LOWER(u.USERNAME_AD) = ?2")
+                    .setParameter(1, apartado).setParameter(2, usuario).executeUpdate();
         }
         em.flush();
         em.clear();
     }
 
+    /** Cambia el código del AD de un usuario existente: su ID (y todo lo que lo referencia) se mantiene. */
+    protected void renombrarUsuario(String actual, String nuevo) {
+        em.flush();
+        em.createNativeQuery("UPDATE USUARIOS SET USERNAME_AD = ?1 WHERE USERNAME_AD = ?2")
+                .setParameter(1, nuevo).setParameter(2, actual).executeUpdate();
+        em.clear();
+    }
+
     protected DirectorioAd persona(String usuario, String cedula, String nombre, boolean activo) {
         DirectorioAd d = new DirectorioAd();
-        d.setUsernameAd(usuario);
+        d.setUsuario(usuarios.obtenerOCrear(usuario));
         d.setCedula(cedula);
         d.setNombreCompleto(nombre);
         if (!activo) {

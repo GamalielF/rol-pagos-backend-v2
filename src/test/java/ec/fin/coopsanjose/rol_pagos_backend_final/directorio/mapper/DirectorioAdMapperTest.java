@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.directorio.mapper;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.entity.Usuario;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.entity.EstadoRegistro;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.client.dto.UsuarioAdDto;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.config.AdProperties;
@@ -77,7 +78,7 @@ class DirectorioAdMapperTest {
     void detectaCambiosYNoInventaDiferencias() {
         FilaDirectorio fila = mapper.aFila(dto("jperez", "1712345675", 1));
         DirectorioAd d = new DirectorioAd();
-        d.setUsernameAd("jperez");
+        d.setUsuario(new Usuario("jperez"));
         mapper.copiar(d, fila);
 
         assertThat(mapper.difiere(d, fila)).isFalse();
@@ -94,7 +95,7 @@ class DirectorioAdMapperTest {
     @Test
     void elPerfilTraeLaCedulaCompletaPeroNuncaEnToString() {
         DirectorioAd d = new DirectorioAd();
-        d.setUsernameAd("jperez");
+        d.setUsuario(new Usuario("jperez"));
         d.setCedula("1712345675");
 
         PerfilDirectorioDto perfil = mapper.aPerfil(d);

@@ -134,7 +134,7 @@ public class NotificacionService {
             aviso.setEstado(EstadoNotificacion.OMITIDA);
             aviso.setUltimoError(SIN_CUENTA);
         } else {
-            aviso.setUsernameDestino(destino.getUsernameAd());
+            aviso.setUsuarioDestino(destino.getUsuario());
             aviso.setEmailDestino(correoDestino);
             aviso.setEstado(EstadoNotificacion.PENDIENTE);
             aviso.setIntentos(0);
@@ -202,7 +202,7 @@ public class NotificacionService {
                 aviso.setUltimoError(SIN_CUENTA);
                 omitidas++;
             } else {
-                aviso.setUsernameDestino(destino.getUsernameAd());
+                aviso.setUsuarioDestino(destino.getUsuario());
                 aviso.setEmailDestino(correoDestino);
                 aviso.setEstado(EstadoNotificacion.PENDIENTE);
                 aviso.setProximoIntento(ahora);

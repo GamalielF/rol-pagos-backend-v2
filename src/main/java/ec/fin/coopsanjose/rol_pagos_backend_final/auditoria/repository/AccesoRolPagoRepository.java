@@ -27,9 +27,9 @@ public interface AccesoRolPagoRepository extends BaseRepository<AccesoRolPago> {
         LocalDateTime getUltimo();
     }
 
-    @Query("select a from AccesoRolPago a "
+    @Query("select a from AccesoRolPago a join a.usuario u "
             + "where a.creadoEn >= :desde and a.creadoEn < :hasta "
-            + "and (:usuario is null or a.usernameAd = :usuario) "
+            + "and (:usuario is null or u.usernameAd = :usuario) "
             + "and (:resultado is null or a.resultado = :resultado) "
             + "and (:tipo is null or a.tipoAcceso = :tipo) "
             + "and (:periodo is null or a.periodo = :periodo) "
@@ -39,12 +39,12 @@ public interface AccesoRolPagoRepository extends BaseRepository<AccesoRolPago> {
                                @Param("tipo") TipoAcceso tipo, @Param("periodo") String periodo,
                                Pageable pageable);
 
-    @Query("select a.usernameAd as usuario, count(a) as intentos, "
+    @Query("select u.usernameAd as usuario, count(a) as intentos, "
             + "count(distinct a.cedulaConsultada) as cedulasDistintas, max(a.creadoEn) as ultimo "
-            + "from AccesoRolPago a "
+            + "from AccesoRolPago a join a.usuario u "
             + "where a.resultado = :denegado and a.creadoEn >= :desde and a.creadoEn < :hasta "
-            + "group by a.usernameAd having count(a) >= :minimo "
-            + "order by count(a) desc, a.usernameAd")
+            + "group by u.id, u.usernameAd having count(a) >= :minimo "
+            + "order by count(a) desc, u.usernameAd")
     List<DenegadosPorUsuario> denegadosPorUsuario(@Param("denegado") ResultadoAcceso denegado,
                                                   @Param("desde") LocalDateTime desde,
                                                   @Param("hasta") LocalDateTime hasta,
@@ -58,6 +58,10 @@ public interface AccesoRolPagoRepository extends BaseRepository<AccesoRolPago> {
                            @Param("propia") TipoAcceso propia);
 
     /** Cuántas veces ese usuario tecleó una cédula ajena desde 'desde'. Base del límite de intentos. */
-    long countByUsernameAdAndResultadoAndDetalleAndCreadoEnAfter(String usernameAd, ResultadoAcceso resultado,
-                                                                 DetalleAcceso detalle, LocalDateTime desde);
+    @Query("select count(a) from AccesoRolPago a join a.usuario u "
+            + "where u.usernameAd = :username and a.resultado = :resultado and a.detalle = :detalle and a.creadoEn > :desde")
+    long countByUsernameAdAndResultadoAndDetalleAndCreadoEnAfter(@Param("username") String usernameAd,
+                                                                 @Param("resultado") ResultadoAcceso resultado,
+                                                                 @Param("detalle") DetalleAcceso detalle,
+                                                                 @Param("desde") LocalDateTime desde);
 }

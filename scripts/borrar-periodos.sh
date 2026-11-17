@@ -48,7 +48,7 @@ mysql_bd -e "SELECT p.ID, DATE_FORMAT(p.FECHA_PERIODO,'%Y-%m') AS PERIODO, p.EST
 
 if [ "$APLICAR" = "si" ]; then
   RESPALDO="respaldo-$(date +%Y%m%d-%H%M).sql"
-  docker exec -e MYSQL_PWD="$DB_PASSWORD" "$CONTENEDOR" mysqldump -u"$DB_USER" --single-transaction "$DB_NAME" > "$RESPALDO"
+  docker exec -e MYSQL_PWD="$DB_PASSWORD" "$CONTENEDOR" mysqldump -u"$DB_USER" --single-transaction --no-tablespaces "$DB_NAME" > "$RESPALDO"
   echo "== Respaldo guardado en $RESPALDO ($(wc -c < "$RESPALDO") bytes) =="
   FIN=COMMIT
 else

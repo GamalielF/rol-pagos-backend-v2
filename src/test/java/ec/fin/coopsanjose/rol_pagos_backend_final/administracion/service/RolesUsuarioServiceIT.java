@@ -24,7 +24,7 @@ class RolesUsuarioServiceIT extends SoporteRolesPago {
 
     private AsignacionRol asignar(String usuario, Rol rol, boolean verRolesAjenos) {
         AsignacionRol asignacion = new AsignacionRol();
-        asignacion.setUsernameAd(usuario);
+        asignacion.setUsuario(usuarios.obtenerOCrear(usuario));
         asignacion.setRol(rol);
         asignacion.definirVerRolesAjenos(verRolesAjenos);
         return repositorio.save(asignacion);

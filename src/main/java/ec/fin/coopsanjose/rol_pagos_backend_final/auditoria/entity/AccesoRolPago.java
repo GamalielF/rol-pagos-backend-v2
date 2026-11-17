@@ -1,5 +1,9 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity;
 
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.entity.Usuario;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,7 +21,7 @@ import org.hibernate.type.SqlTypes;
 @Entity
 @Table(name = "ACCESOS_ROLES_PAGO",
         indexes = {
-                @Index(name = "IDX_ACCESOS_ROLES_PAGO_USUARIO", columnList = "USERNAME_AD, CREADO_EN"),
+                @Index(name = "IDX_ACCESOS_ROLES_PAGO_USUARIO_ID", columnList = "USUARIO_ID, CREADO_EN"),
                 @Index(name = "IDX_ACCESOS_ROLES_PAGO_RESULTADO", columnList = "RESULTADO, CREADO_EN")})
 @Getter
 @Setter
@@ -40,8 +44,9 @@ public class AccesoRolPago extends BaseEntity {
     private DetalleAcceso detalle;
 
     /** Quién consulta. */
-    @Column(name = "USERNAME_AD", nullable = false, length = 50)
-    private String usernameAd;
+    @ManyToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "USUARIO_ID", nullable = false)
+    private Usuario usuario;
 
     /** La cédula tecleada (consulta propia) o la del titular (consulta de RRHH/Admin). */
     @Column(name = "CEDULA_CONSULTADA", length = 10)
@@ -59,4 +64,9 @@ public class AccesoRolPago extends BaseEntity {
 
     @Column(name = "IP_ORIGEN", length = 45)
     private String ipOrigen;
+
+    /** Código del AD del usuario que hizo la consulta. Atajo para no recorrer la relación en cada uso. */
+    public String getUsernameAd() {
+        return usuario == null ? null : usuario.getUsernameAd();
+    }
 }

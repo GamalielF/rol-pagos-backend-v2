@@ -79,8 +79,9 @@ class LimiteIntentosConsultaIT extends SoporteRolesPago {
     /** Mueve al pasado los intentos fallidos de ese usuario, como si hubieran ocurrido hace 'minutos'. */
     private void envejecerFallidos(String usuario, long minutos) {
         em.flush();
-        em.createNativeQuery("UPDATE ACCESOS_ROLES_PAGO SET CREADO_EN = DATE_SUB(CREADO_EN, INTERVAL :minutos MINUTE) "
-                        + "WHERE USERNAME_AD = :usuario AND DETALLE = 'CEDULA_NO_COINCIDE'")
+        em.createNativeQuery("UPDATE ACCESOS_ROLES_PAGO a JOIN USUARIOS u ON u.ID = a.USUARIO_ID "
+                        + "SET a.CREADO_EN = DATE_SUB(a.CREADO_EN, INTERVAL :minutos MINUTE) "
+                        + "WHERE u.USERNAME_AD = :usuario AND a.DETALLE = 'CEDULA_NO_COINCIDE'")
                 .setParameter("minutos", minutos).setParameter("usuario", usuario).executeUpdate();
         em.clear();
     }
