@@ -66,7 +66,7 @@ class SeguridadIT {
         mockMvc.perform(como(get("/prueba/yo"), "RRHH"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content.username").value("fsepa"))
-                .andExpect(jsonPath("$.content.roles[0]").value("RRHH"));
+                .andExpect(jsonPath("$.content.roles", org.hamcrest.Matchers.hasItem("RRHH")));
     }
 
     @Test

@@ -1,10 +1,11 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.service;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuariosDePrueba;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.DetalleAcceso;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.repository.AccesoRolPagoRepository;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.AccesoDenegadoException;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.DemasiadosIntentosException;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.client.DirectorioAdClient;
 import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.SoporteRolesPago;
@@ -56,7 +57,7 @@ class LimiteIntentosConsultaIT extends SoporteRolesPago {
     }
 
     private static UsuarioAutenticado juan() {
-        return new UsuarioAutenticado("zz.juan", CEDULA_JUAN, null, Set.of(Rol.EMPLEADO));
+        return UsuariosDePrueba.con("zz.juan", CEDULA_JUAN, null, Set.of(RolesDelSistema.EMPLEADO));
     }
 
     private void probarCedulasAjenas(int veces) {
@@ -125,7 +126,7 @@ class LimiteIntentosConsultaIT extends SoporteRolesPago {
     @Test
     void elBloqueoEsPorUsuarioYNoAfectaAOtros() {
         probarCedulasAjenas(limite.maximo());
-        UsuarioAutenticado maria = new UsuarioAutenticado("zz.maria", CEDULA_MARIA, null, Set.of(Rol.EMPLEADO));
+        UsuarioAutenticado maria = UsuariosDePrueba.con("zz.maria", CEDULA_MARIA, null, Set.of(RolesDelSistema.EMPLEADO));
         assertThat(consulta.consultarPropio(maria, CEDULA_MARIA, null, IP).contenidoBase64()).isNotEmpty();
     }
 

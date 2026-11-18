@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.service;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuariosDePrueba;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.dto.request.FiltroAcciones;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.dto.request.FiltroAccesos;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.dto.response.AccesoAuditoriaDto;
@@ -16,7 +17,7 @@ import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.ConflictoExce
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.RecursoNoEncontradoException;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.SolicitudInvalidaException;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.response.PaginaDto;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.client.DirectorioAdClient;
 import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.SoporteRolesPago;
@@ -61,11 +62,11 @@ class ReportesAuditoriaServiceIT extends SoporteRolesPago {
     }
 
     private static UsuarioAutenticado empleado(String username, String cedula) {
-        return new UsuarioAutenticado(username, cedula, null, Set.of(Rol.EMPLEADO));
+        return UsuariosDePrueba.con(username, cedula, null, Set.of(RolesDelSistema.EMPLEADO));
     }
 
     private static UsuarioAutenticado personal(String username, String cedula) {
-        return new UsuarioAutenticado(username, cedula, null, Set.of(Rol.RRHH));
+        return UsuariosDePrueba.con(username, cedula, null, Set.of(RolesDelSistema.RRHH));
     }
 
     private static FiltroAccesos sinFiltros() {

@@ -1,20 +1,31 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.administracion.service;
 
 import ec.fin.coopsanjose.rol_pagos_backend_final.administracion.dto.response.PerfilDto;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.util.Enmascarador;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.entity.DirectorioAd;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.repository.DirectorioAdRepository;
+import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.seguridad.SeguridadRolPago;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+
 
 @Service
 @RequiredArgsConstructor
 public class PerfilService {
+
+    /**
+     * Nombre que tenía "ver roles ajenos" antes de la fase 2. El front lo busca así en el perfil: se sigue enviando
+     * junto al código nuevo hasta que el front use ROLPAGO_VER_AJENOS. Después se puede quitar.
+     */
+    @Deprecated
+    static final String NOMBRE_ANTERIOR_VER_AJENOS = "VER_ROLES_AJENOS";
 
     private final DirectorioAdRepository directorioRepository;
 
@@ -24,7 +35,15 @@ public class PerfilService {
                 .map(DirectorioAd::getCargo).orElse(null);
         return new PerfilDto(usuario.username(), usuario.nombre(), cargo, Enmascarador.cedula(usuario.cedula()),
                 usuario.cedula() != null && !usuario.cedula().isBlank(),
-                usuario.roles().stream().sorted(Comparator.comparingInt(Rol::ordinal)).map(Enum::name).toList(),
-                usuario.permisos().stream().map(Enum::name).sorted().toList());
+                usuario.roles().stream().sorted(RolesDelSistema.ORDEN).toList(),
+                permisosParaElFront(usuario.permisos()));
+    }
+
+    private static List<String> permisosParaElFront(Set<String> permisos) {
+        Set<String> todos = new TreeSet<>(permisos);
+        if (permisos.contains(SeguridadRolPago.VER_AJENOS)) {
+            todos.add(NOMBRE_ANTERIOR_VER_AJENOS);
+        }
+        return List.copyOf(todos);
     }
 }

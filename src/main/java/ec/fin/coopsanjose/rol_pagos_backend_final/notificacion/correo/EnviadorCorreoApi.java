@@ -15,7 +15,6 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
-import java.util.LinkedHashMap;
 
 import javax.net.ssl.SSLException;
 import java.net.ConnectException;
@@ -23,19 +22,27 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.net.http.HttpTimeoutException;
 import java.net.URI;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 /**
  * Envío mediante la API de correo de la cooperativa. Manda un aviso por llamada, en el formato
- * {"notifications":[{...}]}. La API acepta el lote y lo procesa después: un 200 significa "aceptado".
+ * {"notifications":[{...}]}. La API acepta el lote y lo procesa después: un 200 significa "aceptado",
+ * salvo que el cuerpo de la respuesta diga que falló (ver {@link #problemaEnRespuesta}).
+ * <p>
+ * Cada envío deja en el log a quién se pidió (con la dirección parcialmente oculta) y un resumen de lo que respondió
+ * la API: sin eso no hay forma de saber si un correo que no llegó se quedó en el sistema o en la API.
  */
 @Slf4j
 public class EnviadorCorreoApi implements EnviadorCorreoConVariables {
 
     private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final int LARGO_RESUMEN = 600;
+    private static final Pattern CORREO = Pattern.compile("([A-Za-z0-9._%+-]{1,2})[A-Za-z0-9._%+-]*(@[A-Za-z0-9.-]+)");
 
     record Notificacion(@JsonProperty("channel") String channel,
                         @JsonProperty("destinatario") String destinatario,
@@ -102,6 +109,8 @@ public class EnviadorCorreoApi implements EnviadorCorreoConVariables {
         }
         HttpMethod metodo = metodoIndividual();
         String para = envio.redirige() ? envio.redirigirA().trim() : destinatario;
+        log.info("Reenvío solicitado a la API individual para {}{}", enmascarar(para),
+                envio.redirige() ? " (REDIRIGIDO)" : "");
         String respuesta = ejecutarIndividual(metodo, () -> restClient.method(metodo)
                 .uri(direccionIndividual(para))
                 .headers(cabeceras -> {
@@ -115,6 +124,7 @@ public class EnviadorCorreoApi implements EnviadorCorreoConVariables {
                 })
                 .retrieve()
                 .body(String.class));
+        log.info("Respuesta de la API individual: {}", resumen(respuesta));
         verificarRespuesta(respuesta);
     }
 
@@ -195,6 +205,7 @@ public class EnviadorCorreoApi implements EnviadorCorreoConVariables {
             throw new EnvioCorreoException("No se pudo preparar el envío (" + e.getClass().getSimpleName()
                     + "): revise la URL y la configuración de la API de correo", true, e);
         }
+        log.info("Respuesta de la API masiva: {}", resumen(respuesta));
         verificarRespuesta(respuesta);
     }
 
@@ -202,6 +213,8 @@ public class EnviadorCorreoApi implements EnviadorCorreoConVariables {
     private Notificacion armar(String destinatario, String asunto, String texto, Map<String, String> variablesDelAviso) {
         boolean redirigido = envio.redirige();
         String para = redirigido ? envio.redirigirA().trim() : destinatario;
+        log.info("Correo solicitado a la API para {}{}", enmascarar(para),
+                redirigido ? " (REDIRIGIDO; destinatario real " + enmascarar(destinatario) + ")" : "");
         Map<String, String> variables = null;
         if (envio.usaPlantilla()) {
             Map<String, String> mapa = new LinkedHashMap<>();
@@ -217,23 +230,67 @@ public class EnviadorCorreoApi implements EnviadorCorreoConVariables {
     }
 
     /**
-     * La API responde 200 aunque el trabajo se procese después. Solo se puede rechazar lo que ella misma marque
-     * como no aceptado; cualquier otra cosa se da por aceptada, porque reintentar un correo ya enviado lo duplica.
+     * La API responde 200 aunque el trabajo se procese después. Se rechaza lo que ella misma marque como fallido;
+     * cualquier otra cosa se da por aceptada, porque reintentar un correo ya enviado lo duplica.
      */
     private static void verificarRespuesta(String cuerpo) {
+        String problema = problemaEnRespuesta(cuerpo);
+        if (problema != null) {
+            log.warn("La API de correo respondió con un fallo: {}", resumen(cuerpo));
+            throw new EnvioCorreoException(problema, true, null);
+        }
+    }
+
+    /**
+     * Las tres formas en que la API avisa que algo falló, aunque el HTTP sea 200:
+     * <ol>
+     *   <li>{@code "success": false} en el primer nivel;</li>
+     *   <li>un {@code "status"} numérico de error, como {@code "status": "500"} (la API envuelve sus respuestas así);</li>
+     *   <li>el resultado del envío dentro del mensaje, como {@code "message": "... NotificationResult(... success=false ...)"}.</li>
+     * </ol>
+     * Un status no numérico ("PROCESSING") o un texto que no es JSON se dan por aceptados.
+     *
+     * @return el motivo del rechazo para RRHH (sin repetir lo que dijo la API), o null si se aceptó
+     */
+    static String problemaEnRespuesta(String cuerpo) {
         if (cuerpo == null || cuerpo.isBlank()) {
-            return;
+            return null;
         }
         JsonNode nodo;
         try {
             nodo = JSON.readTree(cuerpo);
         } catch (RuntimeException e) {
-            return;
+            return null;
         }
-        JsonNode exito = nodo == null ? null : nodo.get("success");
+        if (nodo == null || !nodo.isObject()) {
+            return null;
+        }
+        JsonNode exito = nodo.get("success");
         if (exito != null && exito.isBoolean() && !exito.booleanValue()) {
-            throw new EnvioCorreoException("La API de correo indicó que no aceptó el envío", true, null);
+            return "La API de correo indicó que no aceptó el envío";
         }
+        Integer estado = estadoNumerico(nodo.get("status"));
+        if (estado != null && estado >= 400) {
+            return "La API de correo respondió con estado " + estado + " dentro de una respuesta HTTP 200";
+        }
+        JsonNode mensaje = nodo.get("message");
+        if (mensaje != null && mensaje.isString() && mensaje.asString().replace(" ", "").contains("success=false")) {
+            return "La API de correo indicó que el envío falló";
+        }
+        return null;
+    }
+
+    private static Integer estadoNumerico(JsonNode estado) {
+        if (estado == null) {
+            return null;
+        }
+        if (estado.isNumber()) {
+            return estado.asInt();
+        }
+        if (estado.isString() && estado.asString().trim().matches("\\d{3}")) {
+            return Integer.parseInt(estado.asString().trim());
+        }
+        return null;
     }
 
     private static EnvioCorreoException clasificarEstado(int codigo, Exception causa) {
@@ -280,4 +337,25 @@ public class EnviadorCorreoApi implements EnviadorCorreoConVariables {
     private static boolean tieneTexto(String valor) {
         return valor != null && !valor.isBlank();
     }
-}
+
+    /** aherrera@coopsanjose.fin.ec -> ah***@coopsanjose.fin.ec: se distingue a quién fue sin dejar el correo completo en el log. */
+    static String enmascarar(String correo) {
+        if (correo == null) {
+            return "-";
+        }
+        int arroba = correo.indexOf('@');
+        if (arroba < 2) {
+            return "***" + (arroba >= 0 ? correo.substring(arroba) : "");
+        }
+        return correo.substring(0, 2) + "***" + correo.substring(arroba);
+    }
+
+    /** La respuesta en una sola línea, acotada y con los correos que traiga ocultos (lleva el del destinatario). */
+    static String resumen(String respuesta) {
+        if (respuesta == null || respuesta.isBlank()) {
+            return "(vacía)";
+        }
+        String linea = CORREO.matcher(respuesta.replaceAll("\\s+", " ").trim()).replaceAll("$1***$2");
+        return linea.length() > LARGO_RESUMEN ? linea.substring(0, LARGO_RESUMEN) + "…" : linea;
+    }
+}

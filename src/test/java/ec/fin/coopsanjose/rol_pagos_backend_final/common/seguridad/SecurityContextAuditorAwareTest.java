@@ -28,9 +28,9 @@ class SecurityContextAuditorAwareTest {
 
     @Test
     void conUsuarioDevuelveSuUsername() {
-        UsuarioAutenticado usuario = new UsuarioAutenticado("fsepa", null, null, Set.of(Rol.RRHH));
+        UsuarioAutenticado usuario = UsuariosDePrueba.con("fsepa", null, null, Set.of(RolesDelSistema.RRHH));
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                usuario, null, List.of(new SimpleGrantedAuthority(Rol.RRHH.autoridad()))));
+                usuario, null, usuario.autoridades()));
 
         assertThat(auditor.getCurrentAuditor()).contains("fsepa");
     }

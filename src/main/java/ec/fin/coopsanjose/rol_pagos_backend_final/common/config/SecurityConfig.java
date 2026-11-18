@@ -1,9 +1,12 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.common.config;
 
+import java.util.List;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.modulo.ModuloSeguridad;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.ResolutorAcceso;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.DevAuthFilter;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.DirectorioUsuarios;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.JwtAuthFilter;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.ResolutorRoles;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.SeguridadRespuestaHandler;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.jwt.ValidadorTokenAcceso;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +37,8 @@ public class SecurityConfig {
                                                  SeguridadRespuestaHandler respuestas,
                                                  Environment entorno,
                                                  DirectorioUsuarios directorio,
-                                                 ResolutorRoles resolutorRoles,
+                                                 ResolutorAcceso resolutorAcceso,
+                                                 List<ModuloSeguridad> modulos,
                                                  ValidadorTokenAcceso validadorToken,
                                                  @Value("${app.seguridad.dev-auth-habilitado:false}") boolean devAuth)
             throws Exception {
@@ -49,21 +53,23 @@ public class SecurityConfig {
                 .exceptionHandling(errores -> errores
                         .authenticationEntryPoint(respuestas)    // 401
                         .accessDeniedHandler(respuestas))        // 403
-                .authorizeHttpRequests(reglas -> reglas
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/error").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/rrhh/**").hasAnyRole("RRHH", "ADMIN")
-                        .anyRequest().authenticated());          // cerrado por defecto
+                .authorizeHttpRequests(reglas -> {
+                    reglas.requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                            .requestMatchers("/error").permitAll();
+                    // Cada módulo protege sus rutas con sus permisos (ModuloSeguridad): agregar un módulo no toca esta clase
+                    modulos.forEach(modulo -> modulo.reglas(reglas));
+                    reglas.requestMatchers("/admin/**").hasRole(RolesDelSistema.ADMIN)   // lo de /admin que ningún módulo reclamó
+                            .anyRequest().authenticated();                             // cerrado por defecto
+                });
 
         if (conJwt) {
             log.info("Autenticación por token JWT activa");
-            http.addFilterBefore(new JwtAuthFilter(validadorToken, directorio, resolutorRoles),
+            http.addFilterBefore(new JwtAuthFilter(validadorToken, directorio, resolutorAcceso),
                     UsernamePasswordAuthenticationFilter.class);
         }
         if (devAuth) {
             log.warn("AUTENTICACION DE DESARROLLO ACTIVA: se acepta la identidad enviada en las cabeceras X-Dev-*");
-            http.addFilterBefore(new DevAuthFilter(directorio, resolutorRoles), UsernamePasswordAuthenticationFilter.class);
+            http.addFilterBefore(new DevAuthFilter(directorio, resolutorAcceso), UsernamePasswordAuthenticationFilter.class);
         } else {
             log.info("Autenticacion de desarrollo desactivada");
         }

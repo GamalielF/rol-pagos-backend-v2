@@ -45,6 +45,15 @@ class RrhhPublicacionControllerIT extends SoporteRolesPago {
         cargarUno(CEDULA_JUAN + ".pdf", rol(MES_PERIODO, NOMBRE_JUAN));   // María y Luis quedan sin rol
     }
 
+    /** RRHH con el permiso suelto de ver roles ajenos (como lo deja la pantalla de administración por defecto). */
+    private static RequestPostProcessor rrhhQueVeAjenos() {
+        return peticion -> {
+            sesion("zz.rrhh", "RRHH").postProcessRequest(peticion);
+            peticion.addHeader("X-Dev-Permisos", "ROLPAGO_VER_AJENOS");
+            return peticion;
+        };
+    }
+
     private static RequestPostProcessor sesion(String usuario, String roles) {
         return peticion -> {
             peticion.addHeader("X-Dev-Usuario", usuario);
@@ -91,9 +100,9 @@ class RrhhPublicacionControllerIT extends SoporteRolesPago {
     void verExigeUnMotivoValido() throws Exception {
         Long id = rolDe(CEDULA_JUAN).getId();
 
-        mockMvc.perform(post(BASE + "/roles-pago/" + id + "/ver").with(sesion("zz.rrhh", "RRHH")))
+        mockMvc.perform(post(BASE + "/roles-pago/" + id + "/ver").with(rrhhQueVeAjenos()))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(post(BASE + "/roles-pago/" + id + "/ver").with(sesion("zz.rrhh", "RRHH"))
+        mockMvc.perform(post(BASE + "/roles-pago/" + id + "/ver").with(rrhhQueVeAjenos())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"corto\"}"))
                 .andExpect(status().isBadRequest());
     }
@@ -102,7 +111,7 @@ class RrhhPublicacionControllerIT extends SoporteRolesPago {
     void verConMotivoDevuelveElPdfYQuedaRegistrado() throws Exception {
         Long id = rolDe(CEDULA_JUAN).getId();
 
-        mockMvc.perform(post(BASE + "/roles-pago/" + id + "/ver").with(sesion("zz.rrhh", "RRHH"))
+        mockMvc.perform(post(BASE + "/roles-pago/" + id + "/ver").with(rrhhQueVeAjenos())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"motivo\":\"Reclamo del empleado por diferencia\"}"))
                 .andExpect(status().isOk())
@@ -132,7 +141,7 @@ class RrhhPublicacionControllerIT extends SoporteRolesPago {
     void elIdDeOtroPeriodoDa404() throws Exception {
         Long id = rolDe(CEDULA_JUAN).getId();
 
-        mockMvc.perform(post("/rrhh/periodos/2099-04/roles-pago/" + id + "/ver").with(sesion("zz.rrhh", "RRHH"))
+        mockMvc.perform(post("/rrhh/periodos/2099-04/roles-pago/" + id + "/ver").with(rrhhQueVeAjenos())
                         .contentType(MediaType.APPLICATION_JSON).content("{\"motivo\":\"Motivo de la consulta\"}"))
                 .andExpect(status().isNotFound());
     }

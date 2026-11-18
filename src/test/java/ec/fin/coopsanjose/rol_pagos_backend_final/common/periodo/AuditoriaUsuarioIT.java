@@ -1,6 +1,7 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.common.periodo;
 
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuariosDePrueba;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
@@ -8,12 +9,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,9 +35,9 @@ class AuditoriaUsuarioIT {
 
     @Test
     void creadoPorEsElUsuarioDeLaSesion() {
-        UsuarioAutenticado usuario = new UsuarioAutenticado("fsepa", null, null, Set.of(Rol.RRHH));
+        UsuarioAutenticado usuario = UsuariosDePrueba.con("fsepa", null, null, Set.of(RolesDelSistema.RRHH));
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                usuario, null, List.of(new SimpleGrantedAuthority(Rol.RRHH.autoridad()))));
+                usuario, null, usuario.autoridades()));
 
         Periodo periodo = new Periodo();
         periodo.setFechaPeriodo(LocalDate.of(2099, 2, 1));

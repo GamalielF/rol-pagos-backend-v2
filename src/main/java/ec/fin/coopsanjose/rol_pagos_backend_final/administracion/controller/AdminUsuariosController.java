@@ -5,7 +5,6 @@ import ec.fin.coopsanjose.rol_pagos_backend_final.administracion.dto.response.Us
 import ec.fin.coopsanjose.rol_pagos_backend_final.administracion.service.AdministracionUsuariosService;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.response.ApiResponse;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.response.PaginaDto;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,19 +33,22 @@ public class AdminUsuariosController {
 
     @GetMapping("/privilegiados")
     public ApiResponse<List<UsuarioAdminDto>> privilegiados() {
-        return ApiResponse.ok("Usuarios con rol ADMIN o RRHH", servicio.privilegiados());
+        return ApiResponse.ok("Usuarios con algún rol asignado", servicio.privilegiados());
     }
 
-    /** Cuerpo opcional: {"verRolesAjenos": false} para dar RRHH sin el permiso de abrir roles ajenos. */
+    /**
+     * rol: el código de cualquier rol de la base (ADMIN, RRHH o uno creado en /admin/roles), salvo EMPLEADO.
+     * Cuerpo opcional: {"verRolesAjenos": false} para dar RRHH sin el permiso de abrir roles ajenos.
+     */
     @PostMapping("/{username}/roles/{rol}/otorgar")
-    public ApiResponse<UsuarioAdminDto> otorgar(@PathVariable String username, @PathVariable Rol rol,
+    public ApiResponse<UsuarioAdminDto> otorgar(@PathVariable String username, @PathVariable String rol,
                                                 @RequestBody(required = false) OtorgarRolRequest solicitud) {
         Boolean ver = solicitud == null ? null : solicitud.verRolesAjenos();
         return ApiResponse.ok("Rol otorgado", servicio.otorgar(username, rol, ver));
     }
 
     @PostMapping("/{username}/roles/{rol}/revocar")
-    public ApiResponse<UsuarioAdminDto> revocar(@PathVariable String username, @PathVariable Rol rol) {
+    public ApiResponse<UsuarioAdminDto> revocar(@PathVariable String username, @PathVariable String rol) {
         return ApiResponse.ok("Rol revocado", servicio.revocar(username, rol));
     }
 }

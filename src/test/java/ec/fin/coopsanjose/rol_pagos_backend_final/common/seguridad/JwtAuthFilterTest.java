@@ -26,11 +26,11 @@ class JwtAuthFilterTest {
     private static final TokensDePrueba CLAVES = TokensDePrueba.nuevo();
 
     private final Map<String, PerfilDirectorio> directorio = new HashMap<>();
-    private Set<Rol> rolesReales = Set.of(Rol.EMPLEADO);
+    private Set<String> rolesReales = Set.of(RolesDelSistema.EMPLEADO);
     private final JwtAuthFilter filtro = new JwtAuthFilter(
             new ValidadorTokenAcceso(CLAVES.propiedades()),
             username -> Optional.ofNullable(directorio.get(username)),
-            username -> new ResolutorRoles.RolesYPermisos(rolesReales, Set.of()));
+            UsuariosDePrueba.resolutor(username -> new ResolutorAcceso.RolesYPermisos(rolesReales, Set.of())));
 
     @AfterEach
     void limpiarSesion() {
@@ -85,7 +85,7 @@ class JwtAuthFilterTest {
         directorio.put("jperez", perfil(true));
         assertThat(autoridades(ejecutar(conBearer(tokenDe("jperez"))))).containsExactly("ROLE_EMPLEADO");
         SecurityContextHolder.clearContext();
-        rolesReales = Set.of(Rol.RRHH);
+        rolesReales = Set.of(RolesDelSistema.RRHH);
         assertThat(autoridades(ejecutar(conBearer(tokenDe("jperez"))))).containsExactly("ROLE_RRHH");
     }
 

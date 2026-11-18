@@ -1,11 +1,11 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.service;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuariosDePrueba;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.AccionRolPago;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.TipoAccion;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.repository.AccionRolPagoRepository;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.SolicitudInvalidaException;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.client.DirectorioAdClient;
 import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.SoporteRolesPago;
 import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.pdf.PdfDePrueba;
@@ -146,7 +146,7 @@ class AccionesAuditadasIT extends SoporteRolesPago {
     @Test
     void elActorYLaIpSalenDelContextoDeLaPeticion() {
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
-                new UsuarioAutenticado("zz.rrhh", null, null, Set.of(Rol.RRHH)), null, List.of()));
+                UsuariosDePrueba.con("zz.rrhh", null, null, Set.of(RolesDelSistema.RRHH)), null, List.of()));
         MockHttpServletRequest peticion = new MockHttpServletRequest();
         peticion.setRemoteAddr("10.1.2.3");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(peticion));

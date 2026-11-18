@@ -21,7 +21,7 @@ class DevAuthFilterTest {
     private final Map<String, PerfilDirectorio> directorio = new HashMap<>();
     private final DevAuthFilter filtro = new DevAuthFilter(
             username -> Optional.ofNullable(directorio.get(username)),
-            username -> new ResolutorRoles.RolesYPermisos(Set.of(Rol.EMPLEADO), Set.of()));
+            UsuariosDePrueba.resolutor(username -> new ResolutorAcceso.RolesYPermisos(Set.of(RolesDelSistema.EMPLEADO), Set.of())));
 
     @AfterEach
     void limpiarSesion() {
@@ -63,7 +63,7 @@ class DevAuthFilterTest {
         assertThat(usuario.cedula()).isEqualTo("1712345675");
         assertThat(usuario.nombre()).isEqualTo("PEREZ LOPEZ JUAN");
         List<String> autoridades = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
-        assertThat(autoridades).containsExactlyInAnyOrder("ROLE_RRHH", "ROLE_EMPLEADO");
+        assertThat(autoridades).contains("ROLE_RRHH", "ROLE_EMPLEADO", "ROLPAGO_GESTIONAR", "ROLPAGO_CONSULTAR_PROPIO");
     }
 
     @Test
@@ -94,14 +94,37 @@ class DevAuthFilterTest {
     void sinRolesAsumeEmpleado() throws Exception {
         UsuarioAutenticado usuario = (UsuarioAutenticado) ejecutar(como("jperez", null)).getPrincipal();
 
-        assertThat(usuario.roles()).containsExactly(Rol.EMPLEADO);
+        assertThat(usuario.roles()).containsExactly(RolesDelSistema.EMPLEADO);
     }
 
     @Test
     void rolDesconocidoNuncaEscalaPrivilegios() throws Exception {
         UsuarioAutenticado usuario = (UsuarioAutenticado) ejecutar(como("jperez", "SUPERADMIN")).getPrincipal();
 
-        assertThat(usuario.tieneRol(Rol.ADMIN)).isFalse();
-        assertThat(usuario.roles()).containsExactly(Rol.EMPLEADO);
+        assertThat(usuario.tieneRol(RolesDelSistema.ADMIN)).isFalse();
+        // un rol que no existe no da ningún permiso: solo los de EMPLEADO
+        assertThat(usuario.roles()).doesNotContain(RolesDelSistema.ADMIN);
+        assertThat(usuario.permisos()).containsExactly("ROLPAGO_CONSULTAR_PROPIO");
+    }
+
+    @Test
+    void laSimulacionDaLosPermisosDelRolYLosSueltosDeLaCabecera() throws Exception {
+        MockHttpServletRequest peticion = como("jperez", "RRHH");
+        peticion.addHeader(DevAuthFilter.CABECERA_PERMISOS, " rolpago_ver_ajenos , ");
+
+        UsuarioAutenticado usuario = (UsuarioAutenticado) ejecutar(peticion).getPrincipal();
+
+        assertThat(usuario.permisos()).containsExactlyInAnyOrder("ROLPAGO_CONSULTAR_PROPIO", "ROLPAGO_GESTIONAR",
+                "ROLPAGO_VER_AJENOS");
+    }
+
+    @Test
+    void sinCabeceraDeRolesLaCabeceraDePermisosSeIgnora() throws Exception {
+        MockHttpServletRequest peticion = como("jperez", null);
+        peticion.addHeader(DevAuthFilter.CABECERA_PERMISOS, "ADMIN_USUARIOS");
+
+        UsuarioAutenticado usuario = (UsuarioAutenticado) ejecutar(peticion).getPrincipal();
+
+        assertThat(usuario.tienePermiso("ADMIN_USUARIOS")).isFalse();
     }
 }

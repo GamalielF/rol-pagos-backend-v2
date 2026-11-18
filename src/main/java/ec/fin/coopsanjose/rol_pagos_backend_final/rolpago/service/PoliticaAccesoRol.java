@@ -1,9 +1,8 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.service;
 
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.DetalleAcceso;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Permiso;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
+import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.seguridad.SeguridadRolPago;
 import org.springframework.stereotype.Component;
 
 /** Única fuente de verdad sobre quién puede ver qué rol de pago. */
@@ -24,9 +23,11 @@ public class PoliticaAccesoRol {
         return DetalleAcceso.OK;
     }
 
-    /** El Admin siempre; RRHH solo si el Admin le dio el permiso VER_ROLES_AJENOS. */
+    /**
+     * Decide un PERMISO, no un rol: lo tiene ADMIN, el RRHH al que se le dio, y cualquier rol que se cree mañana con
+     * ese permiso (por ejemplo un "Auditor interno") sin cambiar esta clase.
+     */
     public boolean puedeConsultarAjeno(UsuarioAutenticado usuario) {
-        return usuario != null && (usuario.tieneRol(Rol.ADMIN)
-                || (usuario.tieneRol(Rol.RRHH) && usuario.tienePermiso(Permiso.VER_ROLES_AJENOS)));
+        return usuario != null && usuario.tienePermiso(SeguridadRolPago.VER_AJENOS);
     }
 }

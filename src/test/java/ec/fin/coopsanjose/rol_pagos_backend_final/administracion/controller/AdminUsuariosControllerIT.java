@@ -136,7 +136,7 @@ class AdminUsuariosControllerIT extends SoporteRolesPago {
     @Test
     void losDatosInvalidosDanSuCodigo() throws Exception {
         mockMvc.perform(post(BASE + "/zz.pedro/roles/EMPLEADO/otorgar").with(real("fsepa"))).andExpect(status().isBadRequest());
-        mockMvc.perform(post(BASE + "/zz.pedro/roles/XYZ/otorgar").with(real("fsepa"))).andExpect(status().isBadRequest());
+        mockMvc.perform(post(BASE + "/zz.pedro/roles/XYZ/otorgar").with(real("fsepa"))).andExpect(status().isNotFound());   // ese rol no existe
         mockMvc.perform(post(BASE + "/zz.no.existe/roles/RRHH/otorgar").with(real("fsepa"))).andExpect(status().isNotFound());
         mockMvc.perform(post(BASE + "/msavala/roles/ADMIN/revocar").with(real("fsepa"))).andExpect(status().isConflict());
         mockMvc.perform(post(BASE + "/zz.pedro/roles/RRHH/revocar").with(real("fsepa"))).andExpect(status().isNotFound());

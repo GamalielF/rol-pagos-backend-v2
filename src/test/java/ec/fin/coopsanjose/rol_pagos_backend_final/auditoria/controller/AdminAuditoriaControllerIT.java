@@ -1,7 +1,8 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.controller;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuariosDePrueba;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.AccesoDenegadoException;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.client.DirectorioAdClient;
 import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.SoporteRolesPago;
@@ -60,7 +61,7 @@ class AdminAuditoriaControllerIT extends SoporteRolesPago {
     }
 
     private static UsuarioAutenticado empleado(String username, String cedula) {
-        return new UsuarioAutenticado(username, cedula, null, Set.of(Rol.EMPLEADO));
+        return UsuariosDePrueba.con(username, cedula, null, Set.of(RolesDelSistema.EMPLEADO));
     }
 
     private void consultaDeJuan() {

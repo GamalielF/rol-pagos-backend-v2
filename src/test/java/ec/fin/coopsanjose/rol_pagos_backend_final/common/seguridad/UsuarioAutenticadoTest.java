@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.seguridad.SeguridadRolPago;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -12,35 +13,35 @@ class UsuarioAutenticadoTest {
 
     @Test
     void elConstructorCortoDaElPermisoAPersonalDeRrhhYAdmin() {
-        assertThat(new UsuarioAutenticado("u", null, null, Set.of(Rol.RRHH)).tienePermiso(Permiso.VER_ROLES_AJENOS)).isTrue();
-        assertThat(new UsuarioAutenticado("u", null, null, Set.of(Rol.ADMIN)).tienePermiso(Permiso.VER_ROLES_AJENOS)).isTrue();
-        assertThat(new UsuarioAutenticado("u", null, null, Set.of(Rol.EMPLEADO)).tienePermiso(Permiso.VER_ROLES_AJENOS)).isFalse();
+        assertThat(UsuariosDePrueba.con("u", null, null, Set.of(RolesDelSistema.RRHH)).tienePermiso(SeguridadRolPago.VER_AJENOS)).isTrue();
+        assertThat(UsuariosDePrueba.con("u", null, null, Set.of(RolesDelSistema.ADMIN)).tienePermiso(SeguridadRolPago.VER_AJENOS)).isTrue();
+        assertThat(UsuariosDePrueba.con("u", null, null, Set.of(RolesDelSistema.EMPLEADO)).tienePermiso(SeguridadRolPago.VER_AJENOS)).isFalse();
     }
 
     @Test
     void elConstructorLargoRespetaLosPermisosExplicitos() {
-        UsuarioAutenticado rrhhSinPermiso = new UsuarioAutenticado("u", null, null, Set.of(Rol.RRHH), Set.of());
+        UsuarioAutenticado rrhhSinPermiso = new UsuarioAutenticado("u", null, null, Set.of(RolesDelSistema.RRHH), Set.of());
 
-        assertThat(rrhhSinPermiso.tieneRol(Rol.RRHH)).isTrue();
-        assertThat(rrhhSinPermiso.tienePermiso(Permiso.VER_ROLES_AJENOS)).isFalse();
+        assertThat(rrhhSinPermiso.tieneRol(RolesDelSistema.RRHH)).isTrue();
+        assertThat(rrhhSinPermiso.tienePermiso(SeguridadRolPago.VER_AJENOS)).isFalse();
     }
 
     @Test
     void losConjuntosSeCopianYNoSePuedenAlterar() {
-        Set<Rol> original = new HashSet<>(Set.of(Rol.EMPLEADO));
-        UsuarioAutenticado usuario = new UsuarioAutenticado("u", null, null, original);
+        Set<String> original = new HashSet<>(Set.of(RolesDelSistema.EMPLEADO));
+        UsuarioAutenticado usuario = UsuariosDePrueba.con("u", null, null, original);
 
-        original.add(Rol.ADMIN);   // cambiar el conjunto original no afecta a la sesión
+        original.add(RolesDelSistema.ADMIN);   // cambiar el conjunto original no afecta a la sesión
 
-        assertThat(usuario.tieneRol(Rol.ADMIN)).isFalse();
-        assertThatThrownBy(() -> usuario.roles().add(Rol.ADMIN)).isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> usuario.permisos().add(Permiso.VER_ROLES_AJENOS)).isInstanceOf(UnsupportedOperationException.class);
+        assertThat(usuario.tieneRol(RolesDelSistema.ADMIN)).isFalse();
+        assertThatThrownBy(() -> usuario.roles().add(RolesDelSistema.ADMIN)).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> usuario.permisos().add(SeguridadRolPago.VER_AJENOS)).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test
     void elUsernameEsObligatorio() {
-        assertThatThrownBy(() -> new UsuarioAutenticado(null, null, null, Set.of())).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new UsuarioAutenticado("  ", null, null, Set.of())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> UsuariosDePrueba.con(null, null, null, Set.of())).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> UsuariosDePrueba.con("  ", null, null, Set.of())).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

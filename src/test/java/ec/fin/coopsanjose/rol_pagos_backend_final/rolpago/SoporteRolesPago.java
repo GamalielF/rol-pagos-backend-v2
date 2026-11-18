@@ -2,7 +2,7 @@ package ec.fin.coopsanjose.rol_pagos_backend_final.rolpago;
 
 import ec.fin.coopsanjose.rol_pagos_backend_final.usuario.service.RegistroUsuarios;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.periodo.PeriodoRepository;
-import ec.fin.coopsanjose.rol_pagos_backend_final.administracion.config.AdministradoresProperties;
+import ec.fin.coopsanjose.rol_pagos_backend_final.acceso.config.AdministradoresProperties;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.entity.DirectorioAd;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.repository.DirectorioAdRepository;
 import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.dto.response.ResultadoArchivoDto;
@@ -79,9 +79,11 @@ public abstract class SoporteRolesPago {
     protected void apartarAsignacionesDeLosAdministradoresDeArranque() {
         for (String usuario : administradores.administradoresIniciales()) {
             Long apartado = usuarios.obtenerOCrear("apartado." + usuario).getId();
-            em.createNativeQuery("UPDATE ASIGNACIONES_ROL a JOIN USUARIOS u ON u.ID = a.USUARIO_ID "
-                            + "SET a.USUARIO_ID = ?1 WHERE LOWER(u.USERNAME_AD) = ?2")
-                    .setParameter(1, apartado).setParameter(2, usuario).executeUpdate();
+            for (String tabla : new String[]{"USUARIO_ROLES", "USUARIO_PERMISOS"}) {
+                em.createNativeQuery("UPDATE " + tabla + " a JOIN USUARIOS u ON u.ID = a.USUARIO_ID "
+                                + "SET a.USUARIO_ID = ?1 WHERE LOWER(u.USERNAME_AD) = ?2")
+                        .setParameter(1, apartado).setParameter(2, usuario).executeUpdate();
+            }
         }
         em.flush();
         em.clear();

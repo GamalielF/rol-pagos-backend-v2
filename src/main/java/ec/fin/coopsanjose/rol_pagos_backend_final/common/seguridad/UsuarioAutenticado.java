@@ -1,9 +1,16 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad;
 
-import java.util.Set;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-/** Identidad del usuario de la petición. La construye el filtro de desarrollo hoy y el JWT después. */
-public record UsuarioAutenticado(String username, String cedula, String nombre, Set<Rol> roles, Set<Permiso> permisos) {
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+
+/**
+ * Identidad del usuario de la petición: la arma el filtro de autenticación (JWT o, en desarrollo, las cabeceras).
+ * Roles y permisos son CÓDIGOS (texto) porque viven en la base de datos y pueden crecer sin recompilar.
+ */
+public record UsuarioAutenticado(String username, String cedula, String nombre, Set<String> roles, Set<String> permisos) {
 
     public UsuarioAutenticado {
         if (username == null || username.isBlank()) {
@@ -13,21 +20,19 @@ public record UsuarioAutenticado(String username, String cedula, String nombre, 
         permisos = (permisos == null) ? Set.of() : Set.copyOf(permisos);
     }
 
-    /** Constructor corto: RRHH y ADMIN reciben los permisos de siempre (así funciona la simulación de desarrollo). */
-    public UsuarioAutenticado(String username, String cedula, String nombre, Set<Rol> roles) {
-        this(username, cedula, nombre, roles, permisosPorDefecto(roles));
-    }
-
-    private static Set<Permiso> permisosPorDefecto(Set<Rol> roles) {
-        boolean personal = roles != null && (roles.contains(Rol.RRHH) || roles.contains(Rol.ADMIN));
-        return personal ? Set.of(Permiso.VER_ROLES_AJENOS) : Set.of();
-    }
-
-    public boolean tieneRol(Rol rol) {
+    public boolean tieneRol(String rol) {
         return roles.contains(rol);
     }
 
-    public boolean tienePermiso(Permiso permiso) {
+    public boolean tienePermiso(String permiso) {
         return permisos.contains(permiso);
+    }
+
+    /** Lo que Spring Security compara: ROLE_ADMIN para hasRole('ADMIN') y el código tal cual para hasAuthority(...). */
+    public List<SimpleGrantedAuthority> autoridades() {
+        return Stream.concat(roles.stream().map(rol -> RolesDelSistema.PREFIJO_AUTORIDAD + rol), permisos.stream())
+                .sorted()
+                .map(SimpleGrantedAuthority::new)
+                .toList();
     }
 }

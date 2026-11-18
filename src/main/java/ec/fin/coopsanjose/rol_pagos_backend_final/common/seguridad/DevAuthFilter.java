@@ -1,25 +1,24 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad;
 
+import java.util.HashSet;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.EnumSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
 /**
- * SOLO DESARROLLO. Identifica al usuario por X-Dev-Usuario. Con X-Dev-Roles simula los roles indicados;
- * SIN esa cabecera usa los roles reales (base de datos y administradores iniciales).
+ * SOLO DESARROLLO. Identifica al usuario por X-Dev-Usuario. Con X-Dev-Roles simula los roles indicados (y recibe los
+ * permisos que esos roles tienen en la base); X-Dev-Permisos agrega permisos sueltos. SIN X-Dev-Roles usa los roles
+ * y permisos reales del usuario.
  * SecurityConfig lo registra únicamente si app.seguridad.dev-auth-habilitado=true (perfil dev).
  */
 @Slf4j
@@ -27,13 +26,14 @@ public class DevAuthFilter extends OncePerRequestFilter {
 
     public static final String CABECERA_USUARIO = "X-Dev-Usuario";
     public static final String CABECERA_ROLES = "X-Dev-Roles";
+    public static final String CABECERA_PERMISOS = "X-Dev-Permisos";
 
     private final DirectorioUsuarios directorio;
-    private final ResolutorRoles resolutorRoles;
+    private final ResolutorAcceso resolutorAcceso;
 
-    public DevAuthFilter(DirectorioUsuarios directorio, ResolutorRoles resolutorRoles) {
+    public DevAuthFilter(DirectorioUsuarios directorio, ResolutorAcceso resolutorAcceso) {
         this.directorio = directorio;
-        this.resolutorRoles = resolutorRoles;
+        this.resolutorAcceso = resolutorAcceso;
     }
 
     @Override
@@ -54,40 +54,36 @@ public class DevAuthFilter extends OncePerRequestFilter {
                 String cabeceraRoles = limpiar(request.getHeader(CABECERA_ROLES));
 
                 UsuarioAutenticado usuario;
-                if (cabeceraRoles != null) {
-                    usuario = new UsuarioAutenticado(username, cedula, nombre, leerRoles(cabeceraRoles));   // simulación
+                if (cabeceraRoles != null) {                                                             // simulación
+                    Set<String> roles = leerCodigos(cabeceraRoles);
+                    roles.add(RolesDelSistema.EMPLEADO);           // como en la resolución real: todo usuario es EMPLEADO
+                    Set<String> permisos = new HashSet<>(resolutorAcceso.permisosDeRoles(roles));
+                    permisos.addAll(leerCodigos(limpiar(request.getHeader(CABECERA_PERMISOS))));
+                    usuario = new UsuarioAutenticado(username, cedula, nombre, roles, permisos);
                 } else {
-                    ResolutorRoles.RolesYPermisos reales = resolutorRoles.resolver(username);               // roles reales
+                    ResolutorAcceso.RolesYPermisos reales = resolutorAcceso.resolver(username);             // acceso real
                     usuario = new UsuarioAutenticado(username, cedula, nombre, reales.roles(), reales.permisos());
                 }
-                List<SimpleGrantedAuthority> autoridades = usuario.roles().stream()
-                        .map(rol -> new SimpleGrantedAuthority(rol.autoridad()))
-                        .toList();
                 SecurityContextHolder.getContext().setAuthentication(
-                        new UsernamePasswordAuthenticationToken(usuario, null, autoridades));
+                        new UsernamePasswordAuthenticationToken(usuario, null, usuario.autoridades()));
             }
         }
         chain.doFilter(request, response);
     }
 
-    /** Roles separados por coma. Los desconocidos se ignoran; si no queda ninguno, EMPLEADO (nunca se escala). */
-    private Set<Rol> leerRoles(String cabecera) {
-        Set<Rol> roles = EnumSet.noneOf(Rol.class);
+    /** Códigos separados por coma, en mayúsculas. Un código que no existe en la base simplemente no da nada. */
+    private static Set<String> leerCodigos(String cabecera) {
+        Set<String> codigos = new HashSet<>();
+        if (cabecera == null) {
+            return codigos;
+        }
         for (String texto : cabecera.split(",")) {
-            String nombre = texto.trim().toUpperCase(Locale.ROOT);
-            if (nombre.isEmpty()) {
-                continue;
-            }
-            try {
-                roles.add(Rol.valueOf(nombre));
-            } catch (IllegalArgumentException e) {
-                log.warn("Rol desconocido ignorado: {}", nombre);
+            String codigo = texto.trim().toUpperCase(Locale.ROOT);
+            if (!codigo.isEmpty()) {
+                codigos.add(codigo);
             }
         }
-        if (roles.isEmpty()) {
-            roles.add(Rol.EMPLEADO);
-        }
-        return roles;
+        return codigos;
     }
 
     private String limpiar(String valor) {

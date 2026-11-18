@@ -1,8 +1,8 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.administracion.service;
 
 import ec.fin.coopsanjose.rol_pagos_backend_final.administracion.dto.response.PerfilDto;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Permiso;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
+import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.seguridad.SeguridadRolPago;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.entity.DirectorioAd;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.repository.DirectorioAdRepository;
@@ -20,7 +20,7 @@ class PerfilServiceTest {
     private final DirectorioAdRepository repositorio = mock(DirectorioAdRepository.class);
     private final PerfilService servicio = new PerfilService(repositorio);
 
-    private static UsuarioAutenticado usuario(String cedula, Set<Rol> roles, Set<Permiso> permisos) {
+    private static UsuarioAutenticado usuario(String cedula, Set<String> roles, Set<String> permisos) {
         return new UsuarioAutenticado("fsepa", cedula, "SEPA MORA FABIO", roles, permisos);
     }
 
@@ -29,7 +29,7 @@ class PerfilServiceTest {
         DirectorioAd fila = new DirectorioAd();
         fila.setCargo("ANALISTA DE TECNOLOGIA");
         when(repositorio.findByUsernameAd("fsepa")).thenReturn(Optional.of(fila));
-        PerfilDto perfil = servicio.perfilDe(usuario("1712345675", Set.of(Rol.EMPLEADO), Set.of()));
+        PerfilDto perfil = servicio.perfilDe(usuario("1712345675", Set.of(RolesDelSistema.EMPLEADO), Set.of()));
         assertThat(perfil.cargo()).isEqualTo("ANALISTA DE TECNOLOGIA");
         assertThat(perfil.nombre()).isEqualTo("SEPA MORA FABIO");
     }
@@ -37,29 +37,30 @@ class PerfilServiceTest {
     @Test
     void sinFilaEnElDirectorioElCargoEsNulo() {
         when(repositorio.findByUsernameAd("fsepa")).thenReturn(Optional.empty());
-        assertThat(servicio.perfilDe(usuario(null, Set.of(Rol.EMPLEADO), Set.of())).cargo()).isNull();
+        assertThat(servicio.perfilDe(usuario(null, Set.of(RolesDelSistema.EMPLEADO), Set.of())).cargo()).isNull();
     }
 
     @Test
     void losRolesVanDelMasAlMenosPrivilegiadoSinImportarElOrdenDelConjunto() {
         when(repositorio.findByUsernameAd("fsepa")).thenReturn(Optional.empty());
-        PerfilDto perfil = servicio.perfilDe(usuario(null, Set.of(Rol.EMPLEADO, Rol.RRHH, Rol.ADMIN), Set.of()));
+        PerfilDto perfil = servicio.perfilDe(usuario(null, Set.of(RolesDelSistema.EMPLEADO, RolesDelSistema.RRHH, RolesDelSistema.ADMIN), Set.of()));
         assertThat(perfil.roles()).containsExactly("ADMIN", "RRHH", "EMPLEADO");
     }
 
     @Test
     void laCedulaSaleEnmascaradaYSoloQuienLaTienePuedeConsultarSuRol() {
         when(repositorio.findByUsernameAd("fsepa")).thenReturn(Optional.empty());
-        PerfilDto conCedula = servicio.perfilDe(usuario("1712345675", Set.of(Rol.EMPLEADO), Set.of()));
+        PerfilDto conCedula = servicio.perfilDe(usuario("1712345675", Set.of(RolesDelSistema.EMPLEADO), Set.of()));
         assertThat(conCedula.cedulaEnmascarada()).isEqualTo("17******75").doesNotContain("1712345675");
         assertThat(conCedula.puedeConsultarSuRol()).isTrue();
-        assertThat(servicio.perfilDe(usuario(null, Set.of(Rol.EMPLEADO), Set.of())).puedeConsultarSuRol()).isFalse();
+        assertThat(servicio.perfilDe(usuario(null, Set.of(RolesDelSistema.EMPLEADO), Set.of())).puedeConsultarSuRol()).isFalse();
     }
 
     @Test
     void losPermisosSeEntreganPorNombre() {
         when(repositorio.findByUsernameAd("fsepa")).thenReturn(Optional.empty());
-        PerfilDto perfil = servicio.perfilDe(usuario(null, Set.of(Rol.RRHH), Set.of(Permiso.VER_ROLES_AJENOS)));
-        assertThat(perfil.permisos()).containsExactly("VER_ROLES_AJENOS");
+        PerfilDto perfil = servicio.perfilDe(usuario(null, Set.of(RolesDelSistema.RRHH), Set.of(SeguridadRolPago.VER_AJENOS)));
+        // el código nuevo, y el nombre anterior para el front actual
+        assertThat(perfil.permisos()).containsExactly("ROLPAGO_VER_AJENOS", "VER_ROLES_AJENOS");
     }
 }

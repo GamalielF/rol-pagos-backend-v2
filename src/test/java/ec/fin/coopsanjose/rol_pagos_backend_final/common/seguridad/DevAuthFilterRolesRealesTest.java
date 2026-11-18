@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.seguridad.SeguridadRolPago;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockFilterChain;
@@ -15,6 +16,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -25,7 +28,7 @@ import static org.mockito.Mockito.when;
 class DevAuthFilterRolesRealesTest {
 
     private final Map<String, PerfilDirectorio> directorio = new HashMap<>();
-    private final ResolutorRoles resolutor = mock(ResolutorRoles.class);
+    private final ResolutorAcceso resolutor = mock(ResolutorAcceso.class);
     private final DevAuthFilter filtro = new DevAuthFilter(
             username -> Optional.ofNullable(directorio.get(username)), resolutor);
 
@@ -56,45 +59,50 @@ class DevAuthFilterRolesRealesTest {
     @Test
     void sinCabeceraDeRolesUsaLosRolesRealesYSusAutoridades() throws Exception {
         directorio.put("jperez", perfil("jperez", true));
-        when(resolutor.resolver("jperez")).thenReturn(new ResolutorRoles.RolesYPermisos(
-                Set.of(Rol.EMPLEADO, Rol.RRHH), Set.of(Permiso.VER_ROLES_AJENOS)));
+        when(resolutor.resolver("jperez")).thenReturn(new ResolutorAcceso.RolesYPermisos(
+                Set.of(RolesDelSistema.EMPLEADO, RolesDelSistema.RRHH), Set.of(SeguridadRolPago.VER_AJENOS)));
 
         UsuarioAutenticado usuario = ejecutar(como("jperez", null));
 
-        assertThat(usuario.roles()).containsExactlyInAnyOrder(Rol.EMPLEADO, Rol.RRHH);
-        assertThat(usuario.tienePermiso(Permiso.VER_ROLES_AJENOS)).isTrue();
+        assertThat(usuario.roles()).containsExactlyInAnyOrder(RolesDelSistema.EMPLEADO, RolesDelSistema.RRHH);
+        assertThat(usuario.tienePermiso(SeguridadRolPago.VER_AJENOS)).isTrue();
         List<String> autoridades = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority).toList();
-        assertThat(autoridades).containsExactlyInAnyOrder("ROLE_EMPLEADO", "ROLE_RRHH");
+        assertThat(autoridades).containsExactlyInAnyOrder("ROLE_EMPLEADO", "ROLE_RRHH", SeguridadRolPago.VER_AJENOS);
     }
 
     @Test
     void losPermisosDelResolutorLleganTalComoSon() throws Exception {
         directorio.put("jperez", perfil("jperez", true));
-        when(resolutor.resolver("jperez")).thenReturn(new ResolutorRoles.RolesYPermisos(
-                Set.of(Rol.EMPLEADO, Rol.RRHH), Set.of()));   // RRHH sin el permiso de ver roles ajenos
+        when(resolutor.resolver("jperez")).thenReturn(new ResolutorAcceso.RolesYPermisos(
+                Set.of(RolesDelSistema.EMPLEADO, RolesDelSistema.RRHH), Set.of()));   // RRHH sin el permiso de ver roles ajenos
 
         UsuarioAutenticado usuario = ejecutar(como("jperez", null));
 
-        assertThat(usuario.tieneRol(Rol.RRHH)).isTrue();
-        assertThat(usuario.tienePermiso(Permiso.VER_ROLES_AJENOS)).isFalse();
+        assertThat(usuario.tieneRol(RolesDelSistema.RRHH)).isTrue();
+        assertThat(usuario.tienePermiso(SeguridadRolPago.VER_AJENOS)).isFalse();
     }
 
     @Test
     void conCabeceraDeRolesSeSimulaYNoSeConsultaAlResolutor() throws Exception {
         directorio.put("jperez", perfil("jperez", true));
 
+        when(resolutor.permisosDeRoles(Set.of(RolesDelSistema.RRHH, RolesDelSistema.EMPLEADO)))
+                .thenReturn(Set.of(SeguridadRolPago.GESTIONAR, SeguridadRolPago.CONSULTAR_PROPIO));
+
         UsuarioAutenticado usuario = ejecutar(como("jperez", "RRHH"));
 
-        assertThat(usuario.roles()).containsExactly(Rol.RRHH);
-        assertThat(usuario.tienePermiso(Permiso.VER_ROLES_AJENOS)).isTrue();   // la simulación conserva el comportamiento de siempre
-        verifyNoInteractions(resolutor);
+        assertThat(usuario.roles()).containsExactlyInAnyOrder(RolesDelSistema.RRHH, RolesDelSistema.EMPLEADO);
+        assertThat(usuario.tienePermiso(SeguridadRolPago.GESTIONAR)).isTrue();
+        // ver roles ajenos es un permiso suelto: se simula con X-Dev-Permisos, no viene con el rol
+        assertThat(usuario.tienePermiso(SeguridadRolPago.VER_AJENOS)).isFalse();
+        verify(resolutor, never()).resolver(anyString());
     }
 
     @Test
     void elResolutorRecibeElCodigoCanonicoDelDirectorio() throws Exception {
         directorio.put("JPEREZ", perfil("jperez", true));
-        when(resolutor.resolver("jperez")).thenReturn(new ResolutorRoles.RolesYPermisos(Set.of(Rol.EMPLEADO), Set.of()));
+        when(resolutor.resolver("jperez")).thenReturn(new ResolutorAcceso.RolesYPermisos(Set.of(RolesDelSistema.EMPLEADO), Set.of()));
 
         ejecutar(como("JPEREZ", null));
 
@@ -112,11 +120,11 @@ class DevAuthFilterRolesRealesTest {
 
     @Test
     void unaCabeceraDeRolesEnBlancoCuentaComoAusente() throws Exception {
-        when(resolutor.resolver("nuevo")).thenReturn(new ResolutorRoles.RolesYPermisos(Set.of(Rol.EMPLEADO), Set.of()));
+        when(resolutor.resolver("nuevo")).thenReturn(new ResolutorAcceso.RolesYPermisos(Set.of(RolesDelSistema.EMPLEADO), Set.of()));
 
         UsuarioAutenticado usuario = ejecutar(como("nuevo", "   "));
 
-        assertThat(usuario.roles()).containsExactly(Rol.EMPLEADO);
+        assertThat(usuario.roles()).containsExactly(RolesDelSistema.EMPLEADO);
         verify(resolutor).resolver("nuevo");
     }
 }

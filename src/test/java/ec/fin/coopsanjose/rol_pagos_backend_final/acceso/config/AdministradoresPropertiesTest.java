@@ -1,4 +1,4 @@
-package ec.fin.coopsanjose.rol_pagos_backend_final.administracion.config;
+package ec.fin.coopsanjose.rol_pagos_backend_final.acceso.config;
 
 import org.junit.jupiter.api.Test;
 
@@ -49,4 +49,4 @@ class AdministradoresPropertiesTest {
         assertThatThrownBy(() -> p.administradoresIniciales().add("intruso"))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
-}
+}

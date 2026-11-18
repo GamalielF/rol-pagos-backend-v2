@@ -1,5 +1,6 @@
 package ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.service;
 
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuariosDePrueba;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.AccesoRolPago;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.DetalleAcceso;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.ResultadoAcceso;
@@ -7,7 +8,7 @@ import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.entity.TipoAcceso;
 import ec.fin.coopsanjose.rol_pagos_backend_final.auditoria.repository.AccesoRolPagoRepository;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.AccesoDenegadoException;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.exception.RecursoNoEncontradoException;
-import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.Rol;
+import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.RolesDelSistema;
 import ec.fin.coopsanjose.rol_pagos_backend_final.common.seguridad.UsuarioAutenticado;
 import ec.fin.coopsanjose.rol_pagos_backend_final.directorio.client.DirectorioAdClient;
 import ec.fin.coopsanjose.rol_pagos_backend_final.rolpago.SoporteRolesPago;
@@ -49,11 +50,11 @@ class ConsultaRolPagoServiceIT extends SoporteRolesPago {
     }
 
     private static UsuarioAutenticado empleado(String username, String cedula) {
-        return new UsuarioAutenticado(username, cedula, null, Set.of(Rol.EMPLEADO));
+        return UsuariosDePrueba.con(username, cedula, null, Set.of(RolesDelSistema.EMPLEADO));
     }
 
     private static UsuarioAutenticado personal(String username, String cedula) {
-        return new UsuarioAutenticado(username, cedula, null, Set.of(Rol.RRHH));
+        return UsuariosDePrueba.con(username, cedula, null, Set.of(RolesDelSistema.RRHH));
     }
 
     private List<AccesoRolPago> accesosDe(String username) {
